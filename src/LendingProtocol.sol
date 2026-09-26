@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { IERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ReentrancyGuard } from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-import { Pausable } from "../lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
-import { Ownable } from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import { ECDSA } from "../lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
-import { MessageHashUtils } from "../lib/openzeppelin-contracts/contracts/utils/cryptography/MessageHashUtils.sol";
+import {IERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import {Pausable} from "../lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
+import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {ECDSA} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "../lib/openzeppelin-contracts/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title Lending Protocol
@@ -19,7 +19,6 @@ import { MessageHashUtils } from "../lib/openzeppelin-contracts/contracts/utils/
  * - Manage collaterization ratio and liquidations
  */
 contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
-
     // Custom errors
     error LendingProtocol__InvalidTokenAddress();
     error LendingProtocol__InvalidCollateralFactor();
@@ -47,20 +46,20 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
 
     // Structs
     struct User {
-        uint256 totalDeposited;     // Total amount deposited by user
-        uint256 totalBorrowed;      // Total amount borrowed by user
-        uint256 lastUpdateTime;     // Last time user's data was updated
-        bool isActive;              // Whether user has active positions
+        uint256 totalDeposited; // Total amount deposited by user
+        uint256 totalBorrowed; // Total amount borrowed by user
+        uint256 lastUpdateTime; // Last time user's data was updated
+        bool isActive; // Whether user has active positions
     }
 
     struct Market {
-        IERC20 token;               // The token being lent/borrowed
-        uint256 totalSupply;        // Total amount supplied to this market
-        uint256 totalBorrow;        // Total amount borrowed from this market
-        uint256 supplyRate;         // Current supply rate (APY in basis points)
-        uint256 borrowRate;         // Current borrow rate (APY in basis points)
-        uint256 collateralFactor;   // Collateral factor (0-10000, where 10000 = 100%)
-        bool isActive;              // Whether this market is active
+        IERC20 token; // The token being lent/borrowed
+        uint256 totalSupply; // Total amount supplied to this market
+        uint256 totalBorrow; // Total amount borrowed from this market
+        uint256 supplyRate; // Current supply rate (APY in basis points)
+        uint256 borrowRate; // Current borrow rate (APY in basis points)
+        uint256 collateralFactor; // Collateral factor (0-10000, where 10000 = 100%)
+        bool isActive; // Whether this market is active
     }
 
     struct SignatureData {
@@ -77,9 +76,9 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
     mapping(address => uint256) private s_userNonces;
 
     address[] private s_supportedTokens;
-    uint256 public constant LIQUIDATION_THRESHOLD = 8_000;      // 80% in basis points
-    uint256 public constant LIQUIDATION_PENALTY = 500;          // 5% in basis points
-    uint256 public constant BASIS_POINT = 10_000;               // 100% in basis points
+    uint256 public constant LIQUIDATION_THRESHOLD = 8_000; // 80% in basis points
+    uint256 public constant LIQUIDATION_PENALTY = 500; // 5% in basis points
+    uint256 public constant BASIS_POINT = 10_000; // 100% in basis points
 
     // Events
     event MarketAdded(address indexed token, uint256 collateralFactor);
@@ -117,12 +116,10 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param inititalSupplyRate Initial supply rate in basis points
      * @param initialBorrowRate Initial borrow rate in basis points
      */
-    function addMarket(
-        address token, 
-        uint256 collateralFactor, 
-        uint256 inititalSupplyRate, 
-        uint256 initialBorrowRate
-    ) external onlyOwner {
+    function addMarket(address token, uint256 collateralFactor, uint256 inititalSupplyRate, uint256 initialBorrowRate)
+        external
+        onlyOwner
+    {
         if (token == address(0)) revert LendingProtocol__InvalidTokenAddress();
         if (collateralFactor > BASIS_POINT) revert LendingProtocol__InvalidCollateralFactor();
         if (s_markets[token].isActive) revert LendingProtocol__MarketAlreadyExists();
@@ -148,9 +145,11 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param supplyRate New supply rate
      * @param borrowRate New borrow rate
      */
-    function updateMarket(
-        address token, uint256 collateralFactor, uint256 supplyRate, uint256 borrowRate
-    ) external onlyOwner onlyActiveMarket(token) {
+    function updateMarket(address token, uint256 collateralFactor, uint256 supplyRate, uint256 borrowRate)
+        external
+        onlyOwner
+        onlyActiveMarket(token)
+    {
         if (collateralFactor > BASIS_POINT) revert LendingProtocol__InvalidCollateralFactor();
 
         s_markets[token].collateralFactor = collateralFactor;
@@ -183,11 +182,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
         emit Deposit(msg.sender, token, amount);
     }
 
-    function depositWithSignature(
-        address token, 
-        uint256 amount, 
-        SignatureData calldata sigData
-    )
+    function depositWithSignature(address token, uint256 amount, SignatureData calldata sigData)
         external
         nonReentrant
         whenNotPaused
@@ -197,12 +192,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
         if (amount <= 0) revert LendingProtocol__AmountMustBeGreaterThanZero();
 
         // Verify signature
-        bytes32 messageHash = keccak256(abi.encodePacked(
-            "deposit", 
-            token, 
-            sigData.nonce,
-            sigData.deadline
-        ));
+        bytes32 messageHash = keccak256(abi.encodePacked("deposit", token, sigData.nonce, sigData.deadline));
         bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
         address signer = ethSignedMessageHash.recover(sigData.signature);
         if (signer != msg.sender) revert LendingProtocol__InvalidSignature();
@@ -261,7 +251,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
 
         emit Borrow(msg.sender, token, amount);
     }
-    
+
     function repay(address token, uint256 amount) external nonReentrant whenNotPaused onlyActiveMarket(token) {
         if (amount <= 0) revert LendingProtocol__AmountMustBeGreaterThanZero();
         if (s_userBorrows[msg.sender][token] < amount) revert LendingProtocol__InsufficientBurrow();
@@ -276,7 +266,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
             s_users[msg.sender].isActive = false;
         }
 
-        s_markets[token].totalBorrow -= amount; 
+        s_markets[token].totalBorrow -= amount;
 
         emit Repay(msg.sender, token, amount);
     }
@@ -288,7 +278,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param amount The amount to withdraw
      * @return True if withdrawal is safe
      */
-    function canWithdraw(address user, address token, uint256 amount) public view returns(bool) {
+    function canWithdraw(address user, address token, uint256 amount) public view returns (bool) {
         uint256 currentRatio = getCollateralizationRatio(user);
         if (currentRatio == type(uint256).max) return true;
 
@@ -326,7 +316,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param token The token to borrow
      * @param amount The amount to borrow
      */
-    function canBorrow(address user, address token, uint256 amount) public view returns(bool) {
+    function canBorrow(address user, address token, uint256 amount) public view returns (bool) {
         // uint256 currentRatio = getCollateralizationRatio(user);
         // if (currentRatio == type(uint256).max) return true;  This causes that the first borrow would be umlimited in amount
 
@@ -364,7 +354,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param user The user address
      * @return ratio The collaterization ratio in basis points
      */
-    function getCollateralizationRatio(address user) public view returns(uint256 ratio) {
+    function getCollateralizationRatio(address user) public view returns (uint256 ratio) {
         uint256 totalCollateralValue = 0;
         uint256 totalBorrowValue = 0;
 
@@ -394,7 +384,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param token The token to liquidate
      * @param amount The amount to liquidate
      */
-    function liquidate(address user, address token, uint256 amount) 
+    function liquidate(address user, address token, uint256 amount)
         external
         nonReentrant
         whenNotPaused
@@ -409,7 +399,9 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
         // Find collateral token to seize
         address collateralToken = _findBestCollateral(user);
         if (collateralToken == address(0)) revert LendingProtocol__NoCollateralToSeize();
-        if (s_userDeposits[user][collateralToken] < collateralToSeize) revert LendingProtocol__InsufficientCollateral();
+        if (s_userDeposits[user][collateralToken] < collateralToSeize) {
+            revert LendingProtocol__InsufficientCollateral();
+        }
 
         // Transfer Borrowed tokens from liquidator
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
@@ -435,7 +427,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param user The user address
      * @return True if position ca be liquidated
      */
-    function isLiquidatable(address user) public view returns(bool) {
+    function isLiquidatable(address user) public view returns (bool) {
         uint256 ratio = getCollateralizationRatio(user);
         return ratio < LIQUIDATION_THRESHOLD;
     }
@@ -445,7 +437,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param user The user address
      * @return The address of the best collateral token
      */
-    function _findBestCollateral(address user) internal view returns(address) {
+    function _findBestCollateral(address user) internal view returns (address) {
         address bestToken = address(0);
         uint256 bestValue = 0;
 
@@ -497,7 +489,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param user The user address
      * @return The current nonce
      */
-    function getNonce(address user) external view returns(uint256) {
+    function getNonce(address user) external view returns (uint256) {
         return s_userNonces[user];
     }
 
@@ -506,7 +498,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param token The token address
      * @return Market information
      */
-    function getMarket(address token) external view returns(Market memory) {
+    function getMarket(address token) external view returns (Market memory) {
         return s_markets[token];
     }
 
@@ -515,7 +507,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param user The user address
      * @return User information
      */
-    function getUser(address user) external view returns(User memory) {
+    function getUser(address user) external view returns (User memory) {
         return s_users[user];
     }
 
@@ -525,7 +517,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param token The token address
      * @return The deposit amount
      */
-    function getUserDeposit(address user, address token) external view returns(uint256) {
+    function getUserDeposit(address user, address token) external view returns (uint256) {
         return s_userDeposits[user][token];
     }
 
@@ -535,7 +527,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @param token The token address
      * @return The borrow amount
      */
-    function getUserBorrow(address user, address token) external view returns(uint256) {
+    function getUserBorrow(address user, address token) external view returns (uint256) {
         return s_userBorrows[user][token];
     }
 
@@ -543,7 +535,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @dev Get all supported tokens
      * @return Array of supported tokens addresses
      */
-    function getSupportedTokens() external view returns(address[] memory) {
+    function getSupportedTokens() external view returns (address[] memory) {
         return s_supportedTokens;
     }
 
@@ -551,7 +543,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @dev Get the Liquidation Threshold
      * @return The liquidation threshold number
      */
-    function getLiquidationThreshold() external pure returns(uint256) {
+    function getLiquidationThreshold() external pure returns (uint256) {
         return LIQUIDATION_THRESHOLD;
     }
 
@@ -559,7 +551,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @dev Get the Liquidation Penalty
      * @return The liquidation Penalty number
      */
-    function getLiquidationPenalty() external pure returns(uint256) {
+    function getLiquidationPenalty() external pure returns (uint256) {
         return LIQUIDATION_PENALTY;
     }
 
@@ -567,8 +559,7 @@ contract LendingProtocol is ReentrancyGuard, Pausable, Ownable {
      * @dev Get the Basis Points
      * @return The basis points number
      */
-    function getBasisPoints() external pure returns(uint256) {
+    function getBasisPoints() external pure returns (uint256) {
         return BASIS_POINT;
     }
-
 }
